@@ -177,17 +177,14 @@
 
           if (referrerUrl.origin === currentUrl.origin) {
             window.history.back();
-            console.log("返回按钮点击 - 浏览器返回");
             return;
           }
         }
 
         // 否则跳转到首页
         window.location.href = "/";
-        console.log("返回按钮点击 - 跳转首页");
       } catch (error) {
         // 如果出现错误，默认跳转到首页
-        console.warn("返回功能出错，跳转到首页:", error);
         window.location.href = "/";
       }
     });
@@ -201,79 +198,33 @@
     searchBtn.addEventListener("click", function (e) {
       e.preventDefault();
 
-      // 调用搜索功能，带重试机制
-      function tryToggleSearch(retries = 5) {
-        if (window.Search) {
-          // 切换搜索状态（如果已打开则关闭，否则打开）
-          if (window.Search.isVisible && window.Search.isVisible()) {
-            window.Search.hide();
-          } else {
-            window.Search.show();
-          }
-        } else if (retries > 0) {
-          setTimeout(() => tryToggleSearch(retries - 1), 200);
-        }
-      }
+      const detail = { origin: "dock", handled: false };
+      document.dispatchEvent(new CustomEvent("search:toggle", { detail }));
 
-      tryToggleSearch();
+      if (!detail.handled && window.Search?.toggle) {
+        window.Search.toggle();
+      }
     });
   }
 
   // 评论按钮 - 只在文章页面且评论启用时存在
+  // 主题的评论区由统一的 #comments 容器包裹，直接定位即可，无需匹配各评论系统的元素
   const commentsBtn = document.getElementById("dock-comments");
   if (commentsBtn) {
     commentsBtn.addEventListener("click", function (e) {
       e.preventDefault();
 
-      // 实现滚动到评论区域功能
-      try {
-        // 尝试多种可能的评论区域选择器
-        const commentSelectors = [
-          "#comments", // 通用评论区域 ID
-          ".comments", // 通用评论区域类
-          "#giscus-container", // Giscus 评论系统
-          ".giscus", // Giscus 评论系统类
-          "#disqus_thread", // Disqus 评论系统
-          ".disqus", // Disqus 评论系统类
-          "#utterances", // Utterances 评论系统
-          ".utterances", // Utterances 评论系统类
-          "#waline", // Waline 评论系统
-          ".waline", // Waline 评论系统类
-          "[data-comments]", // 带有 data-comments 属性的元素
-          ".comment-section", // 评论区域类
-          ".post-comments", // 文章评论类
-        ];
+      const commentElement = document.getElementById("comments");
 
-        let commentElement = null;
-
-        // 按优先级查找评论元素
-        for (const selector of commentSelectors) {
-          commentElement = document.querySelector(selector);
-          if (commentElement) {
-            console.log(`找到评论区域: ${selector}`);
-            break;
-          }
-        }
-
-        if (commentElement) {
-          // 平滑滚动到评论区域
-          commentElement.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-            inline: "nearest",
-          });
-          console.log("评论按钮点击 - 滚动到评论区域");
-        } else {
-          // 如果找不到评论区域，滚动到页面底部
-          window.scrollTo({
-            top: document.documentElement.scrollHeight,
-            behavior: "smooth",
-          });
-          console.log("评论按钮点击 - 未找到评论区域，滚动到页面底部");
-        }
-      } catch (error) {
-        console.warn("滚动到评论区域失败:", error);
-        // 出错时滚动到页面底部
+      if (commentElement) {
+        // 平滑滚动到评论区域
+        commentElement.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+          inline: "nearest",
+        });
+      } else {
+        // 找不到评论区时回退到页面底部
         window.scrollTo({
           top: document.documentElement.scrollHeight,
           behavior: "smooth",
@@ -312,13 +263,4 @@
       break;
   }
 
-  // 调试信息
-  if (
-    window.location.hostname === "localhost" ||
-    window.location.hostname === "127.0.0.1"
-  ) {
-    console.log(
-      "Dock initialized successfully - positioned at perfect center bottom",
-    );
-  }
 })();
